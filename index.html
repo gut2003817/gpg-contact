@@ -2,66 +2,103 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Yun Ting的加密聯絡信箱</title>
+  <title>📬 GPG 加密留言箱</title>
   <style>
     body {
-      font-family: "Noto Sans TC", sans-serif;
-      background-color: #f5f5f5;
-      margin: 0;
+      font-family: 'Noto Sans TC', sans-serif;
+      background: #f9f9f9;
       padding: 2rem;
       color: #333;
     }
-    .container {
-      max-width: 700px;
+    .box {
+      max-width: 600px;
       margin: auto;
       background: white;
       padding: 2rem;
       border-radius: 10px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
-    h1 {
-      color: #2c3e50;
+    h1 { text-align: center; }
+    textarea {
+      width: 100%;
+      height: 180px;
+      margin-bottom: 1rem;
+      font-family: monospace;
     }
-    pre {
-      background: #eee;
-      padding: 1rem;
-      overflow-x: auto;
+    input[type="file"] {
+      margin-bottom: 1rem;
+    }
+    button {
+      background: #2980b9;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.2rem;
       border-radius: 5px;
+      cursor: pointer;
     }
-    a {
-      color: #2980b9;
+    .msg {
+      margin-top: 1rem;
+      color: green;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>📬 ting 的加密聯絡信箱</h1>
-    <p>歡迎來信！為了保障資訊安全，請使用以下公開金鑰（GPG 公鑰）加密你的訊息再寄給我。</p>
+  <div class="box">
+    <h1>📬 GPG 加密留言箱</h1>
+    <p>請貼上你的 GPG 加密訊息或上傳 <code>.asc</code> 檔案。我會收到後使用私鑰解密。</p>
 
-    <h2>📥 公鑰下載</h2>
-    <p>
-      👉 <a href="https://keys.openpgp.org/vks/v1/by-fingerprint/160A693AA85837B1810F107B07A225E4B770FA3E" target="_blank">
-      點我下載 ting 的公鑰</a>
-    </p>
+    <textarea id="pgpText" placeholder="請貼上 -----BEGIN PGP MESSAGE----- 開頭的密文..."></textarea>
 
-    <h2>🔐 如何加密訊息</h2>
-    <ol>
-      <li>從上面連結下載並匯入我的公鑰。</li>
-      <li>準備你想傳的訊息，存成 <code>message.txt</code>。</li>
-      <li>執行以下指令進行加密：</li>
-    </ol>
-    <pre>gpg --encrypt --armor -r iuo130613@gmail.com message.txt > encrypted.asc</pre>
+    <p>或上傳檔案：</p>
+    <input type="file" id="pgpFile" accept=".asc">
 
-    <p>接著你可以把 <code>encrypted.asc</code> 的內容寄信給我，或透過安全管道傳送。</p>
+    <button onclick="submitMessage()">送出留言</button>
 
-    <h2>📫 聯絡方式</h2>
-    <p>Email: <code>iuo130613@gmail.com</code></p>
-
-    <hr>
-    <p style="font-size: 0.9rem; color: #777;">
-      這是一個實驗性質的 GPG 公鑰聯絡頁，若你能讀懂這段話，代表你很棒 👍
-    </p>
+    <p class="msg" id="result"></p>
   </div>
+
+  <script>
+    async function submitMessage() {
+      const textarea = document.getElementById("pgpText");
+      const fileInput = document.getElementById("pgpFile");
+      const result = document.getElementById("result");
+
+      let message = textarea.value.trim();
+
+      // 若沒貼文字，試著讀檔案內容
+      if (!message && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        message = await file.text();
+      }
+
+      // 驗證訊息是否為 GPG 格式
+      if (!message.includes("-----BEGIN PGP MESSAGE-----")) {
+        result.style.color = 'red';
+        result.textContent = "請輸入有效的 GPG 密文或上傳 .asc 檔案";
+        return;
+      }
+
+      const data = {
+        message_type: fileInput.files.length > 0 ? "file" : "text",
+        content: message
+      };
+
+      fetch("https://script.google.com/macros/s/AKfycby6h0Q0q8lG5X0U0AsgakFt9l9MMOVR-CyXOuAwoWEZ-B4zkK5OhuM5bSkBkltfTi0/exec", {
+        method: "POST",
+        body: JSON.stringify(data)
+      })
+      .then(res => res.text())
+      .then(msg => {
+        result.style.color = 'green';
+        result.textContent = "留言已送出，感謝你！";
+        textarea.value = "";
+        fileInput.value = "";
+      })
+      .catch(err => {
+        result.style.color = 'red';
+        result.textContent = "傳送失敗，請稍後再試。";
+      });
+    }
+  </script>
 </body>
 </html>
